@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pong Game - Advanced AI</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --paddle: #e2e8f0;
+      --ball: #f8fafc;
+      --line: rgba(255, 255, 255, 0.35);
+      --text: #f8fafc;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(180deg, #020817, #0f172a);
+      font-family: Arial, sans-serif;
+      color: var(--text);
+      padding: 20px;
+    }
+
+    .game-wrap {
+      text-align: center;
+    }
+
+    canvas {
+      display: block;
+      background: var(--bg);
+      border: 3px solid var(--line);
+      border-radius: 12px;
+      box-shadow: 0 0 30px rgba(59, 130, 246, 0.2);
+    }
+
+    .scoreboard {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 2rem;
+      margin-bottom: 1rem;
+      font-size: 2rem;
+      font-weight: bold;
+      letter-spacing: 0.08em;
+    }
+
+    .scoreboard span {
+      min-width: 3rem;
+      display: inline-block;
+    }
+
+    .controls {
+      margin-top: 1.5rem;
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .difficulty-btn {
+      padding: 0.5rem 1rem;
+      margin: 0.25rem;
+      border: 2px solid var(--line);
+      background: rgba(59, 130, 246, 0.1);
+      color: var(--text);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: bold;
+      transition: all 0.3s ease;
+    }
+
+    .difficulty-btn:hover {
+      background: rgba(59, 130, 246, 0.3);
+      transform: translateY(-2px);
+    }
+
+    .difficulty-btn.active {
+      background: #3b82f6;
+      border-color: #3b82f6;
+      box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+    }
+
+    .info {
+      margin-top: 1rem;
+      font-size: 0.9rem;
+      color: rgba(248, 250, 252, 0.7);
+      line-height: 1.6;
+    }
+
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      margin-top: 1rem;
+      font-size: 0.85rem;
+      color: rgba(248, 250, 252, 0.6);
+    }
+
+    .stat-item {
+      text-align: center;
+    }
+
+    .stat-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      opacity: 0.6;
+    }
+
+    .stat-value {
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: var(--text);
+    }
+  </style>
+</head>
+<body>
+  <div class="game-wrap">
+    <h1>🏓 PONG</h1>
+    
+    <div class="scoreboard">
+      <span id="leftScore">0</span>
+      <span>:</span>
+      <span id="rightScore">0</span>
+    </div>
+
+    <canvas id="gameCanvas" width="900" height="500"></canvas>
+
+    <div class="controls">
+      <button class="difficulty-btn active" data-difficulty="easy">Easy</button>
+      <button class="difficulty-btn" data-difficulty="normal">Normal</button>
+      <button class="difficulty-btn" data-difficulty="hard">Hard</button>
+      <button class="difficulty-btn" data-difficulty="expert">Expert</button>
+      <button class="difficulty-btn" data-difficulty="insane">Insane</button>
+    </div>
+
+    <div class="info">
+      <p>🖱️ Move mouse or use ⬆️⬇️ arrow keys to control left paddle</p>
+    </div>
+
+    <div class="stats">
+      <div class="stat-item">
+        <div class="stat-label">AI Difficulty</div>
+        <div class="stat-value" id="difficultyDisplay">EASY</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">AI Reaction</div>
+        <div class="stat-value" id="reactionDisplay">0ms</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Ball Speed</div>
+        <div class="stat-value" id="speedDisplay">0.0x</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const leftScoreEl = document.getElementById("leftScore");
+    const rightScoreEl = document.getElementById("rightScore");
+    const difficultyDisplayEl = document.getElementById("difficultyDisplay");
+    const reactionDisplayEl = document.getElementById("reactionDisplay");
+    const speedDisplayEl = document.getElementById("speedDisplay");
+
+    // Difficulty configurations
+    const difficultyLevels = {
+      easy: {
+        name: "EASY",
+        aiSpeed: 3.5,
+        reactionTime: 200,
+        accuracy: 0.4,
+        predictAhead: 0.3,
+        ballSpeedMultiplier: 0.8,
+        paddleHeightPenalty: 0
+      },
+      normal: {
+        name: "NORMAL",
+        aiSpeed: 5.5,
+        reactionTime: 100,
+        accuracy: 0.65,
+        predictAhead: 0.6,
+        ballSpeedMultiplier: 1.0,
+        paddleHeightPenalty: 0
+      },
+      hard: {
+        name: "HARD",
+        aiSpeed: 7.5,
+        reactionTime: 40,
+        accuracy: 0.85,
+        predictAhead: 0.9,
+        ballSpeedMultiplier: 1.15,
+        paddleHeightPenalty: 0
+      },
+      expert: {
+        name: "EXPERT",
+        aiSpeed: 9.0,
+        reactionTime: 10,
+        accuracy: 0.95,
+        predictAhead: 1.2,
+        ballSpeedMultiplier: 1.3,
+        paddleHeightPenalty: -10
+      },
+      insane: {
+        name: "INSANE",
+        aiSpeed: 11.0,
+        reactionTime: 0,
+        accuracy: 1.0,
+        predictAhead: 1.5,
+        ballSpeedMultiplier: 1.5,
+        paddleHeightPenalty: -25
+      }
+    };
+
+    let currentDifficulty = "easy";
+    let difficultyConfig = difficultyLevels[currentDifficulty];
+
+    const leftPaddle = {
+      x: 20,
+      y: canvas.height / 2 - 50,
+      width: 14,
+      height: 100,
+      speed: 8
+    };
+
+    const rightPaddle = {
+      x: canvas.width - 34,
+      y: canvas.height / 2 - 50,
+      width: 14,
+      height: 100 + difficultyConfig.paddleHeightPenalty,
+      speed: difficultyConfig.aiSpeed
+    };
+
+    const ball = {
+      x: canvas.width / 2,
+      y: canvas.height / 2,
+      radius: 10,
+      speedX: 5,
+      speedY: 4,
+      baseSpeed: 5
+    };
+
+    let leftScore = 0;
+    let rightScore = 0;
+    let frameCount = 0;
+    let aiReactionCounter = 0;
+    let aiTargetY = canvas.height / 2;
+
+    let mouseY = canvas.height / 2;
+    let mouseActive = false;
+
+    const keys = {
+      ArrowUp: false,
+      ArrowDown: false
+    };
+
+    function clamp(value, min, max) {
+      return Math.min(Math.max(value, min), max);
+    }
+
+    function resetBall(direction) {
+      ball.x = canvas.width / 2;
+      ball.y = canvas.height / 2;
+
+      const baseSpeed = ball.baseSpeed * difficultyConfig.ballSpeedMultiplier;
+      const speed = baseSpeed + Math.random() * 1.5;
+      ball.speedX = direction * speed;
+      ball.speedY = Math.random() * 4 - 2;
+    }
+
+    function updateScores() {
+      leftScoreEl.textContent = leftScore;
+      rightScoreEl.textContent = rightScore;
+    }
+
+    function updateStats() {
+      difficultyDisplayEl.textContent = difficultyConfig.name;
+      reactionDisplayEl.textContent = difficultyConfig.reactionTime + "ms";
+      const ballSpeedRatio = (Math.sqrt(ball.speedX ** 2 + ball.speedY ** 2) / 5).toFixed(1);
+      speedDisplayEl.textContent = ballSpeedRatio + "x";
+    }
+
+    function predictBallPosition(steps) {
+      let predictedX = ball.x;
+      let predictedY = ball.y;
+      let predictedSpeedX = ball.speedX;
+      let predictedSpeedY = ball.speedY;
+
+      for (let i = 0; i < steps; i++) {
+        predictedX += predictedSpeedX;
+        predictedY += predictedSpeedY;
+
+        if (predictedY - ball.radius <= 0) {
+          predictedY = ball.radius;
+          predictedSpeedY *= -1;
+        }
+
+        if (predictedY + ball.radius >= canvas.height) {
+          predictedY = canvas.height - ball.radius;
+          predictedSpeedY *= -1;
+        }
+
+        if (predictedX > canvas.width) break;
+      }
+
+      return predictedY;
+    }
+
+    function updateAI() {
+      // Calculate prediction steps based on ball distance to AI paddle
+      const distanceToPaddle = rightPaddle.x - ball.x;
+      const predictionSteps = Math.max(5, Math.floor(distanceToPaddle / Math.abs(ball.speedX || 1)));
+      const predictedY = predictBallPosition(predictionSteps * difficultyConfig.predictAhead);
+
+      // Reaction time mechanism
+      aiReactionCounter++;
+      if (aiReactionCounter >= Math.max(0, difficultyConfig.reactionTime / 16)) {
+        // Add accuracy noise
+        const noise = (Math.random() - 0.5) * (1 - difficultyConfig.accuracy) * 50;
+        aiTargetY = clamp(predictedY + noise, 0, canvas.height - rightPaddle.height);
+        aiReactionCounter = 0;
+      }
+
+      // Move towards target
+      const moveDirection = aiTargetY - (rightPaddle.y + rightPaddle.height / 2);
+      if (Math.abs(moveDirection) > 2) {
+        rightPaddle.y += Math.sign(moveDirection) * rightPaddle.speed;
+      }
+
+      rightPaddle.y = clamp(rightPaddle.y, 0, canvas.height - rightPaddle.height);
+    }
+
+    function update() {
+      // Mouse controls left paddle
+      if (mouseActive) {
+        leftPaddle.y = clamp(mouseY - leftPaddle.height / 2, 0, canvas.height - leftPaddle.height);
+      }
+
+      // Keyboard controls
+      if (keys.ArrowUp) {
+        leftPaddle.y -= leftPaddle.speed;
+      }
+      if (keys.ArrowDown) {
+        leftPaddle.y += leftPaddle.speed;
+      }
+
+      leftPaddle.y = clamp(leftPaddle.y, 0, canvas.height - leftPaddle.height);
+
+      // Update AI
+      updateAI();
+
+      // Ball movement
+      ball.x += ball.speedX;
+      ball.y += ball.speedY;
+
+      // Wall collision
+      if (ball.y - ball.radius <= 0) {
+        ball.y = ball.radius;
+        ball.speedY *= -1;
+      }
+
+      if (ball.y + ball.radius >= canvas.height) {
+        ball.y = canvas.height - ball.radius;
+        ball.speedY *= -1;
+      }
+
+      // Left wall score
+      if (ball.x - ball.radius <= 0) {
+        rightScore++;
+        updateScores();
+        resetBall(1);
+      }
+
+      // Right wall score
+      if (ball.x + ball.radius >= canvas.width) {
+        leftScore++;
+        updateScores();
+        resetBall(-1);
+      }
+
+      // Paddle collision: left paddle
+      if (
+        ball.x - ball.radius <= leftPaddle.x + leftPaddle.width &&
+        ball.y >= leftPaddle.y &&
+        ball.y <= leftPaddle.y + leftPaddle.height &&
+        ball.x > leftPaddle.x
+      ) {
+        ball.x = leftPaddle.x + leftPaddle.width + ball.radius;
+        ball.speedX = Math.abs(ball.speedX) + 0.4;
+
+        const impact = (ball.y - (leftPaddle.y + leftPaddle.height / 2)) / (leftPaddle.height / 2);
+        ball.speedY = impact * 7;
+      }
+
+      // Paddle collision: right paddle
+      if (
+        ball.x + ball.radius >= rightPaddle.x &&
+        ball.y >= rightPaddle.y &&
+        ball.y <= rightPaddle.y + rightPaddle.height &&
+        ball.x < rightPaddle.x + rightPaddle.width
+      ) {
+        ball.x = rightPaddle.x - ball.radius;
+        ball.speedX = -Math.abs(ball.speedX) - 0.4;
+
+        const impact = (ball.y - (rightPaddle.y + rightPaddle.height / 2)) / (rightPaddle.height / 2);
+        ball.speedY = impact * 7;
+      }
+
+      updateStats();
+    }
+
+    function drawCenterLine() {
+      ctx.strokeStyle = "rgba(255,255,255,0.35)";
+      ctx.setLineDash([15, 15]);
+      ctx.beginPath();
+      ctx.moveTo(canvas.width / 2, 0);
+      ctx.lineTo(canvas.width / 2, canvas.height);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    function drawPaddle(x, y, width, height) {
+      ctx.fillStyle = "#e2e8f0";
+      ctx.shadowColor = "rgba(59, 130, 246, 0.5)";
+      ctx.shadowBlur = 10;
+      ctx.fillRect(x, y, width, height);
+      ctx.shadowBlur = 0;
+    }
+
+    function drawBall(x, y, radius) {
+      ctx.fillStyle = "#f8fafc";
+      ctx.shadowColor = "rgba(248, 250, 252, 0.8)";
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Background
+      ctx.fillStyle = "#0f172a";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      drawCenterLine();
+
+      drawPaddle(leftPaddle.x, leftPaddle.y, leftPaddle.width, leftPaddle.height);
+      drawPaddle(rightPaddle.x, rightPaddle.y, rightPaddle.width, rightPaddle.height);
+
+      drawBall(ball.x, ball.y, ball.radius);
+
+      // Score text
+      ctx.fillStyle = "#f8fafc";
+      ctx.font = "bold 36px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(String(leftScore), canvas.width / 4, 50);
+      ctx.fillText(String(rightScore), (canvas.width / 4) * 3, 50);
+    }
+
+    function gameLoop() {
+      update();
+      draw();
+      requestAnimationFrame(gameLoop);
+    }
+
+    // Event listeners for difficulty
+    document.querySelectorAll(".difficulty-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".difficulty-btn").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+
+        const difficulty = btn.dataset.difficulty;
+        changeDifficulty(difficulty);
+      });
+    });
+
+    function changeDifficulty(difficulty) {
+      currentDifficulty = difficulty;
+      difficultyConfig = difficultyLevels[difficulty];
+      rightPaddle.speed = difficultyConfig.aiSpeed;
+      rightPaddle.height = 100 + difficultyConfig.paddleHeightPenalty;
+      rightPaddle.y = clamp(rightPaddle.y, 0, canvas.height - rightPaddle.height);
+      aiReactionCounter = 0;
+
+      // Reset ball with new speed
+      resetBall(Math.random() < 0.5 ? -1 : 1);
+    }
+
+    canvas.addEventListener("mousemove", (event) => {
+      const rect = canvas.getBoundingClientRect();
+      mouseY = ((event.clientY - rect.top) / rect.height) * canvas.height;
+      mouseActive = true;
+    });
+
+    canvas.addEventListener("mouseleave", () => {
+      mouseActive = false;
+    });
+
+    window.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowUp") keys.ArrowUp = true;
+      if (event.key === "ArrowDown") keys.ArrowDown = true;
+    });
+
+    window.addEventListener("keyup", (event) => {
+      if (event.key === "ArrowUp") keys.ArrowUp = false;
+      if (event.key === "ArrowDown") keys.ArrowDown = false;
+    });
+
+    updateScores();
+    updateStats();
+    resetBall(Math.random() < 0.5 ? -1 : 1);
+    requestAnimationFrame(gameLoop);
+  </script>
+</body>
+</html>
