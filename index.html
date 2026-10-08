@@ -31,6 +31,7 @@
 
     .game-wrap {
       text-align: center;
+      position: relative;
     }
 
     h1 {
@@ -71,7 +72,7 @@
       flex-wrap: wrap;
     }
 
-    .difficulty-btn {
+    .difficulty-btn, .control-btn {
       padding: 0.5rem 1rem;
       margin: 0.25rem;
       border: 2px solid var(--line);
@@ -84,7 +85,7 @@
       transition: all 0.3s ease;
     }
 
-    .difficulty-btn:hover {
+    .difficulty-btn:hover, .control-btn:hover {
       background: rgba(59, 130, 246, 0.3);
       transform: translateY(-2px);
     }
@@ -93,6 +94,21 @@
       background: #3b82f6;
       border-color: #3b82f6;
       box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+    }
+
+    .control-btn {
+      background: rgba(34, 197, 94, 0.1);
+      border-color: var(--line);
+    }
+
+    .control-btn:hover {
+      background: rgba(34, 197, 94, 0.3);
+    }
+
+    .control-btn.pause-active {
+      background: #f97316;
+      border-color: #f97316;
+      box-shadow: 0 0 15px rgba(249, 115, 22, 0.5);
     }
 
     .info {
@@ -136,10 +152,159 @@
       margin: 0 0.5rem;
       font-size: 0.9rem;
     }
+
+    /* Overlay Styles */
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .overlay-content {
+      background: linear-gradient(135deg, #1e293b, #0f172a);
+      border: 3px solid #3b82f6;
+      border-radius: 16px;
+      padding: 3rem;
+      text-align: center;
+      max-width: 500px;
+      box-shadow: 0 0 50px rgba(59, 130, 246, 0.5);
+      animation: scaleIn 0.3s ease;
+    }
+
+    @keyframes scaleIn {
+      from {
+        transform: scale(0.8);
+        opacity: 0;
+      }
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    .overlay-content h2 {
+      font-size: 2.5rem;
+      margin-top: 0;
+      margin-bottom: 1rem;
+    }
+
+    .overlay-content p {
+      font-size: 1.2rem;
+      margin: 0.5rem 0;
+      color: rgba(248, 250, 252, 0.8);
+    }
+
+    .overlay-content .score-display {
+      font-size: 2rem;
+      font-weight: bold;
+      margin: 1.5rem 0;
+      color: #3b82f6;
+    }
+
+    .overlay-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      margin-top: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .overlay-btn {
+      padding: 0.75rem 1.5rem;
+      font-size: 1rem;
+      font-weight: bold;
+      border: 2px solid #3b82f6;
+      background: #3b82f6;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .overlay-btn:hover {
+      background: #2563eb;
+      border-color: #2563eb;
+      transform: translateY(-2px);
+    }
+
+    .overlay-btn.secondary {
+      background: transparent;
+      color: #3b82f6;
+    }
+
+    .overlay-btn.secondary:hover {
+      background: rgba(59, 130, 246, 0.2);
+    }
+
+    .pause-overlay .overlay-content h2 {
+      color: #f97316;
+    }
+
+    .pause-overlay .overlay-content {
+      border-color: #f97316;
+      box-shadow: 0 0 50px rgba(249, 115, 22, 0.5);
+    }
+
+    .win-overlay .overlay-content h2 {
+      color: #22c55e;
+    }
+
+    .win-overlay .overlay-content {
+      border-color: #22c55e;
+      box-shadow: 0 0 50px rgba(34, 197, 94, 0.5);
+    }
+
+    .trophy {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+    }
+
+    .mute-toggle {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: rgba(59, 130, 246, 0.2);
+      border: 2px solid var(--line);
+      color: var(--text);
+      font-size: 1.5rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .mute-toggle:hover {
+      background: rgba(59, 130, 246, 0.4);
+    }
+
+    .mute-toggle.muted {
+      background: rgba(239, 68, 68, 0.2);
+    }
   </style>
 </head>
 <body>
   <div class="game-wrap">
+    <button class="mute-toggle" id="muteBtn" title="Toggle Sound">🔊</button>
+    
     <h1>🏓 PONG</h1>
     
     <div class="scoreboard">
@@ -156,6 +321,8 @@
       <button class="difficulty-btn" data-difficulty="hard">Hard</button>
       <button class="difficulty-btn" data-difficulty="expert">Expert</button>
       <button class="difficulty-btn" data-difficulty="insane">Insane</button>
+      <button class="control-btn" id="pauseBtn">⏸ Pause</button>
+      <button class="control-btn" id="restartBtn">🔄 Restart</button>
     </div>
 
     <div class="info">
@@ -183,10 +350,49 @@
     </div>
   </div>
 
+  <!-- Start Screen -->
+  <div class="overlay active" id="startOverlay">
+    <div class="overlay-content">
+      <h2>🏓 PONG</h2>
+      <p>A Classic Game with Advanced AI</p>
+      <p style="font-size: 1rem; margin-top: 1.5rem;">Win Condition: First to 11 points</p>
+      <p style="font-size: 0.9rem; color: rgba(248, 250, 252, 0.6);">🖱️ Mouse or ⬆️⬇️ keys to control</p>
+      <div class="overlay-buttons">
+        <button class="overlay-btn" id="startBtn">Start Game</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pause Overlay -->
+  <div class="overlay pause-overlay" id="pauseOverlay">
+    <div class="overlay-content">
+      <h2>⏸ PAUSED</h2>
+      <div class="overlay-buttons">
+        <button class="overlay-btn" id="resumeBtn">Resume</button>
+        <button class="overlay-btn secondary" id="pauseRestartBtn">Restart</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Over Overlay -->
+  <div class="overlay win-overlay" id="gameOverOverlay">
+    <div class="overlay-content">
+      <div class="trophy">🏆</div>
+      <h2 id="winnerText">YOU WIN!</h2>
+      <p id="winMessage">Congratulations!</p>
+      <div class="score-display" id="finalScore">11 : 5</div>
+      <div class="overlay-buttons">
+        <button class="overlay-btn" id="playAgainBtn">Play Again</button>
+        <button class="overlay-btn secondary" id="changeNormalBtn">Change Difficulty</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
 
+    // UI Elements
     const leftScoreEl = document.getElementById("leftScore");
     const rightScoreEl = document.getElementById("rightScore");
     const difficultyDisplayEl = document.getElementById("difficultyDisplay");
@@ -194,6 +400,93 @@
     const speedDisplayEl = document.getElementById("speedDisplay");
     const rallyDisplayEl = document.getElementById("rallyDisplay");
     const rallyCountEl = document.getElementById("rallyCount");
+    
+    // Overlay Elements
+    const startOverlay = document.getElementById("startOverlay");
+    const pauseOverlay = document.getElementById("pauseOverlay");
+    const gameOverOverlay = document.getElementById("gameOverOverlay");
+    const winnerText = document.getElementById("winnerText");
+    const winMessage = document.getElementById("winMessage");
+    const finalScore = document.getElementById("finalScore");
+    
+    // Button Elements
+    const pauseBtn = document.getElementById("pauseBtn");
+    const restartBtn = document.getElementById("restartBtn");
+    const startBtn = document.getElementById("startBtn");
+    const resumeBtn = document.getElementById("resumeBtn");
+    const pauseRestartBtn = document.getElementById("pauseRestartBtn");
+    const playAgainBtn = document.getElementById("playAgainBtn");
+    const changeNormalBtn = document.getElementById("changeNormalBtn");
+    const muteBtn = document.getElementById("muteBtn");
+
+    // Game State
+    let gameStarted = false;
+    let gamePaused = false;
+    let gameOver = false;
+    let soundEnabled = true;
+    const WIN_SCORE = 11;
+
+    // Simple Sound Effects using Web Audio API
+    class SoundManager {
+      constructor() {
+        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        this.enabled = true;
+      }
+
+      playSound(frequency, duration, type = 'sine') {
+        if (!this.enabled) return;
+
+        try {
+          const now = this.audioContext.currentTime;
+          const osc = this.audioContext.createOscillator();
+          const gain = this.audioContext.createGain();
+
+          osc.connect(gain);
+          gain.connect(this.audioContext.destination);
+
+          osc.frequency.value = frequency;
+          osc.type = type;
+
+          gain.gain.setValueAtTime(0.1, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
+
+          osc.start(now);
+          osc.stop(now + duration);
+        } catch (e) {
+          console.log('Audio playback not available');
+        }
+      }
+
+      paddleHit() {
+        this.playSound(400, 0.1, 'sine');
+      }
+
+      wallBounce() {
+        this.playSound(300, 0.08, 'sine');
+      }
+
+      score() {
+        this.playSound(600, 0.15, 'sine');
+        this.playSound(800, 0.15, 'sine');
+      }
+
+      win() {
+        this.playSound(800, 0.2, 'sine');
+        this.playSound(1000, 0.2, 'sine');
+        this.playSound(1200, 0.3, 'sine');
+      }
+
+      lose() {
+        this.playSound(200, 0.1, 'sine');
+        this.playSound(150, 0.2, 'sine');
+      }
+
+      toggle() {
+        this.enabled = !this.enabled;
+      }
+    }
+
+    const soundManager = new SoundManager();
 
     // Difficulty configurations
     const difficultyLevels = {
@@ -284,7 +577,7 @@
     let frameCount = 0;
     let aiReactionCounter = 0;
     let aiTargetY = canvas.height / 2;
-    let lastBallContact = 0; // Track which paddle last hit the ball
+    let lastBallContact = 0;
 
     let mouseY = canvas.height / 2;
     let mouseActive = false;
@@ -321,11 +614,19 @@
       ball.speedY *= speedRatio;
 
       rallyCount++;
+      soundManager.paddleHit();
     }
 
     function updateScores() {
       leftScoreEl.textContent = leftScore;
       rightScoreEl.textContent = rightScore;
+
+      // Check win condition
+      if (leftScore >= WIN_SCORE) {
+        triggerGameOver(true);
+      } else if (rightScore >= WIN_SCORE) {
+        triggerGameOver(false);
+      }
     }
 
     function updateStats() {
@@ -364,21 +665,17 @@
     }
 
     function updateAI() {
-      // Calculate prediction steps based on ball distance to AI paddle
       const distanceToPaddle = rightPaddle.x - ball.x;
       const predictionSteps = Math.max(5, Math.floor(distanceToPaddle / Math.abs(ball.speedX || 1)));
       const predictedY = predictBallPosition(predictionSteps * difficultyConfig.predictAhead);
 
-      // Reaction time mechanism
       aiReactionCounter++;
       if (aiReactionCounter >= Math.max(0, difficultyConfig.reactionTime / 16)) {
-        // Add accuracy noise
         const noise = (Math.random() - 0.5) * (1 - difficultyConfig.accuracy) * 50;
         aiTargetY = clamp(predictedY + noise, 0, canvas.height - rightPaddle.height);
         aiReactionCounter = 0;
       }
 
-      // Move towards target
       const moveDirection = aiTargetY - (rightPaddle.y + rightPaddle.height / 2);
       if (Math.abs(moveDirection) > 2) {
         rightPaddle.y += Math.sign(moveDirection) * rightPaddle.speed;
@@ -388,12 +685,12 @@
     }
 
     function update() {
-      // Mouse controls left paddle
+      if (!gameStarted || gamePaused || gameOver) return;
+
       if (mouseActive) {
         leftPaddle.y = clamp(mouseY - leftPaddle.height / 2, 0, canvas.height - leftPaddle.height);
       }
 
-      // Keyboard controls
       if (keys.ArrowUp) {
         leftPaddle.y -= leftPaddle.speed;
       }
@@ -403,10 +700,8 @@
 
       leftPaddle.y = clamp(leftPaddle.y, 0, canvas.height - leftPaddle.height);
 
-      // Update AI
       updateAI();
 
-      // Ball movement
       ball.x += ball.speedX;
       ball.y += ball.speedY;
 
@@ -414,17 +709,20 @@
       if (ball.y - ball.radius <= 0) {
         ball.y = ball.radius;
         ball.speedY *= -1;
+        soundManager.wallBounce();
       }
 
       if (ball.y + ball.radius >= canvas.height) {
         ball.y = canvas.height - ball.radius;
         ball.speedY *= -1;
+        soundManager.wallBounce();
       }
 
       // Left wall score
       if (ball.x - ball.radius <= 0) {
         rightScore++;
         updateScores();
+        soundManager.score();
         resetBall(1);
       }
 
@@ -432,6 +730,7 @@
       if (ball.x + ball.radius >= canvas.width) {
         leftScore++;
         updateScores();
+        soundManager.score();
         resetBall(-1);
       }
 
@@ -505,7 +804,6 @@
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Background
       ctx.fillStyle = "#0f172a";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -516,12 +814,20 @@
 
       drawBall(ball.x, ball.y, ball.radius);
 
-      // Score text
       ctx.fillStyle = "#f8fafc";
       ctx.font = "bold 36px Arial";
       ctx.textAlign = "center";
       ctx.fillText(String(leftScore), canvas.width / 4, 50);
       ctx.fillText(String(rightScore), (canvas.width / 4) * 3, 50);
+
+      // Draw pause indicator
+      if (gamePaused) {
+        ctx.fillStyle = "rgba(249, 115, 22, 0.3)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#f97316";
+        ctx.font = "bold 48px Arial";
+        ctx.fillText("PAUSED", canvas.width / 2, canvas.height / 2);
+      }
     }
 
     function gameLoop() {
@@ -530,29 +836,88 @@
       requestAnimationFrame(gameLoop);
     }
 
+    function triggerGameOver(playerWon) {
+      gameOver = true;
+      pauseOverlay.classList.remove("active");
+
+      if (playerWon) {
+        winnerText.textContent = "🎉 YOU WIN!";
+        winMessage.textContent = "Congratulations! You defeated the AI!";
+        soundManager.win();
+      } else {
+        winnerText.textContent = "💻 AI WINS!";
+        winMessage.textContent = "The AI was too strong. Try a lower difficulty!";
+        soundManager.lose();
+      }
+
+      finalScore.textContent = `${leftScore} : ${rightScore}`;
+      gameOverOverlay.classList.add("active");
+    }
+
+    function initGame() {
+      gameStarted = true;
+      gamePaused = false;
+      gameOver = false;
+      leftScore = 0;
+      rightScore = 0;
+      startOverlay.classList.remove("active");
+      gameOverOverlay.classList.remove("active");
+      updateScores();
+      resetBall(Math.random() < 0.5 ? -1 : 1);
+    }
+
+    function togglePause() {
+      if (!gameStarted || gameOver) return;
+      gamePaused = !gamePaused;
+      pauseBtn.classList.toggle("pause-active");
+      pauseOverlay.classList.toggle("active");
+    }
+
+    function restart() {
+      gamePaused = false;
+      pauseBtn.classList.remove("pause-active");
+      pauseOverlay.classList.remove("active");
+      initGame();
+    }
+
     // Event listeners for difficulty
     document.querySelectorAll(".difficulty-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
+        if (gameStarted && !gameOver) return;
         document.querySelectorAll(".difficulty-btn").forEach((b) => b.classList.remove("active"));
         btn.classList.add("active");
 
         const difficulty = btn.dataset.difficulty;
-        changeDifficulty(difficulty);
+        currentDifficulty = difficulty;
+        difficultyConfig = difficultyLevels[difficulty];
+        rightPaddle.speed = difficultyConfig.aiSpeed;
+        rightPaddle.height = 100 + difficultyConfig.paddleHeightPenalty;
+        rightPaddle.y = clamp(rightPaddle.y, 0, canvas.height - rightPaddle.height);
+        aiReactionCounter = 0;
       });
     });
 
-    function changeDifficulty(difficulty) {
-      currentDifficulty = difficulty;
-      difficultyConfig = difficultyLevels[difficulty];
-      rightPaddle.speed = difficultyConfig.aiSpeed;
-      rightPaddle.height = 100 + difficultyConfig.paddleHeightPenalty;
-      rightPaddle.y = clamp(rightPaddle.y, 0, canvas.height - rightPaddle.height);
-      aiReactionCounter = 0;
+    // Control buttons
+    pauseBtn.addEventListener("click", togglePause);
+    restartBtn.addEventListener("click", restart);
+    startBtn.addEventListener("click", initGame);
+    resumeBtn.addEventListener("click", togglePause);
+    pauseRestartBtn.addEventListener("click", restart);
+    playAgainBtn.addEventListener("click", restart);
+    changeNormalBtn.addEventListener("click", () => {
+      gameOverOverlay.classList.remove("active");
+      startOverlay.classList.add("active");
+    });
 
-      // Reset ball with new speed
-      resetBall(Math.random() < 0.5 ? -1 : 1);
-    }
+    // Mute button
+    muteBtn.addEventListener("click", () => {
+      soundManager.toggle();
+      soundEnabled = soundManager.enabled;
+      muteBtn.textContent = soundEnabled ? "🔊" : "🔇";
+      muteBtn.classList.toggle("muted");
+    });
 
+    // Canvas event listeners
     canvas.addEventListener("mousemove", (event) => {
       const rect = canvas.getBoundingClientRect();
       mouseY = ((event.clientY - rect.top) / rect.height) * canvas.height;
@@ -563,9 +928,14 @@
       mouseActive = false;
     });
 
+    // Keyboard events
     window.addEventListener("keydown", (event) => {
       if (event.key === "ArrowUp") keys.ArrowUp = true;
       if (event.key === "ArrowDown") keys.ArrowDown = true;
+      if (event.key === " ") {
+        event.preventDefault();
+        togglePause();
+      }
     });
 
     window.addEventListener("keyup", (event) => {
@@ -573,9 +943,8 @@
       if (event.key === "ArrowDown") keys.ArrowDown = false;
     });
 
-    updateScores();
+    // Start the game loop
     updateStats();
-    resetBall(Math.random() < 0.5 ? -1 : 1);
     requestAnimationFrame(gameLoop);
   </script>
 </body>
